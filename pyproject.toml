@@ -1,0 +1,122 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "partner-app-qa"
+version = "1.0.0"
+description = "Enterprise-grade QA Automation Framework for Partner App"
+readme = "README.md"
+requires-python = ">=3.13"
+license = {text = "MIT"}
+authors = [
+    {name = "QA Automation Team", email = "qa@partnerapp.com"}
+]
+
+dependencies = [
+    "pytest==7.4.3",
+    "pytest-bdd==6.1.1",
+    "pytest-xdist==3.5.0",
+    "pytest-timeout==2.2.0",
+    "pytest-retry==1.6.1",
+    "playwright==1.40.0",
+    "appium-python-client==2.10.1",
+    "requests==2.31.0",
+    "httpx==0.25.2",
+    "pydantic==2.5.0",
+    "pydantic-settings==2.1.0",
+    "faker==21.0.0",
+    "allure-pytest==2.13.2",
+    "psycopg2-binary==2.9.9",
+    "pymongo==4.6.0",
+    "redis==5.0.1",
+    "python-dotenv==1.0.0",
+    "pyyaml==6.0.1",
+    "loguru==0.7.2",
+    "tenacity==8.2.3",
+    "python-dateutil==2.8.2",
+    "pillow==10.1.0",
+    "opencv-python==4.8.1.78",
+    "graphql-core==3.2.3",
+    "jsonschema==4.20.0"
+]
+
+[project.optional-dependencies]
+dev = [
+    "black==23.12.1",
+    "flake8==6.1.0",
+    "pylint==3.0.3",
+    "mypy==1.7.1",
+    "isort==5.13.2",
+    "pytest-cov==4.1.0",
+    "pre-commit==3.5.0"
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --strict-markers --tb=short --maxfail=1"
+markers = [
+    "smoke: smoke test",
+    "sanity: sanity test",
+    "regression: regression test",
+    "critical: critical test",
+    "mobile: mobile test",
+    "android: android test",
+    "ios: ios test",
+    "ui: ui test",
+    "api: api test",
+    "db: database test",
+    "e2e: end-to-end test"
+]
+
+[tool.black]
+line-length = 120
+target-version = ["py313"]
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 120
+skip_gitignore = true
+
+[tool.mypy]
+python_version = "3.13"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
+
+[tool.pylint.messages_control]
+disable = ["C0111", "R0913", "R0914"]
+
+[tool.coverage.run]
+source = ["core", "pages", "mobile_pages", "api", "database"]
+omit = ["*/tests/*", "*/__pycache__/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]

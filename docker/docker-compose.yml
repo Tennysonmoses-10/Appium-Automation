@@ -1,0 +1,121 @@
+version: '3.9'
+
+services:
+  # =========================================================================
+  # QA Automation Framework
+  # =========================================================================
+  
+  qa-framework:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: partner-app-qa
+    environment:
+      ENVIRONMENT: staging
+      PYTHONUNBUFFERED: 1
+      PYTEST_ADDOPTS: "-v --alluredir=reports/allure -m smoke"
+    volumes:
+      - ./reports:/app/reports
+      - ./screenshots:/app/screenshots
+      - ./videos:/app/videos
+      - ./logs:/app/logs
+    depends_on:
+      - postgres
+      - appium
+    networks:
+      - qa-network
+    command: tests/ -v --alluredir=reports/allure -m smoke
+    restart: on-failure
+
+  # =========================================================================
+  # PostgreSQL Database
+  # =========================================================================
+  
+  postgres:
+    image: postgres:15-alpine
+    container_name: partner-app-postgres
+    environment:
+      POSTGRES_DB: partner_app
+      POSTGRES_USER: qa_user
+      POSTGRES_PASSWORD: qa_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U qa_user -d partner_app"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - qa-network
+
+  # =========================================================================
+  # Appium Server (for mobile testing)
+  # =========================================================================
+  
+  appium:
+    image: appium/appium:2.0.0
+    container_name: partner-app-appium
+    environment:
+      NODE_ENV: development
+    ports:
+      - "4723:4723"
+    volumes:
+      - /dev/shm:/dev/shm
+    networks:
+      - qa-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4723/status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # =========================================================================
+  # Allure Report Server
+  # =========================================================================
+  
+  allure:
+    image: frankescobar/allure-docker-service:2.21.0
+    container_name: partner-app-allure
+    ports:
+      - "4040:4040"
+      - "4041:4041"
+    volumes:
+      - ./reports/allure:/app/allure-results
+      - allure_data:/app/allure-report
+    networks:
+      - qa-network
+    environment:
+      CHECK_RESULTS_EVERY_SECONDS: 5
+      KEEP_HISTORY: 1
+
+  # =========================================================================
+  # Redis Cache (optional)
+  # =========================================================================
+  
+  redis:
+    image: redis:7-alpine
+    container_name: partner-app-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - qa-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  allure_data:
+  redis_data:
+
+networks:
+  qa-network:
+    driver: bridge
