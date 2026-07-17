@@ -12,6 +12,13 @@ from pathlib import Path
 class DatabaseConfig(BaseSettings):
     """Database configuration."""
     
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        env_prefix="DATABASE_",
+        extra="allow"
+    )
+    
     host: str = Field(default="localhost")
     port: int = Field(default=5432)
     username: str = Field(default="postgres")
@@ -25,18 +32,39 @@ class DatabaseConfig(BaseSettings):
 class AppiumConfig(BaseSettings):
     """Appium configuration for mobile automation."""
     
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        env_prefix="APPIUM_",
+        extra="allow"
+    )
+    
     server_url: str = Field(default="http://localhost:4723")
     timeout: int = Field(default=30)
     implicit_wait: int = Field(default=10)
     explicit_wait: int = Field(default=20)
     device_name: str = Field(default="emulator-5554")
     platform: Literal["Android", "iOS"] = Field(default="Android")
+    
+    # For pre-installed apps
     app_package: str = Field(default="com.partnerapp")
     app_activity: str = Field(default=".MainActivity")
+    
+    # For local app files (APK/IPA)
+    app_path: str = Field(default="")  # Path to APK/IPA file
+    automation_name: str = Field(default="UiAutomator2")  # Android: UiAutomator2, iOS: XCUITest
+    udid: str = Field(default="")  # Device UDID (optional)
 
 
 class PlaywrightConfig(BaseSettings):
     """Playwright configuration for web automation."""
+    
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        env_prefix="PLAYWRIGHT_",
+        extra="allow"
+    )
     
     browser_type: Literal["chromium", "firefox", "webkit"] = Field(default="chromium")
     headless: bool = Field(default=True)
@@ -50,6 +78,12 @@ class PlaywrightConfig(BaseSettings):
 
 class ReportingConfig(BaseSettings):
     """Reporting configuration."""
+    
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="allow"
+    )
     
     allure_dir: Path = Field(default=Path("reports/allure"))
     html_dir: Path = Field(default=Path("reports/html"))
@@ -66,6 +100,13 @@ class ReportingConfig(BaseSettings):
 
 class APIConfig(BaseSettings):
     """API configuration."""
+    
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        env_prefix="API_",
+        extra="allow"
+    )
     
     base_url: str = Field(default="http://localhost:8080")
     timeout: int = Field(default=30)
