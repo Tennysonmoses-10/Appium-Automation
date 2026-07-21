@@ -9,7 +9,6 @@ from pathlib import Path
 from appium import webdriver
 from appium.options.android import UiAutomator2Options
 from appium.options.ios import XCUITestOptions
-from webdriver_manager.chrome import ChromeDriverManager
 from config.settings import settings
 from core.logger import logger
 
@@ -58,9 +57,13 @@ class AppiumDriverManager:
             options.platform_name = "Android"
             options.app_package = settings.appium.app_package
             options.app_activity = settings.appium.app_activity
-            options.automation_name = "uiautomator2"
+            options.automation_name = settings.appium.automation_name
             options.implicit_wait_timeout = settings.appium.implicit_wait * 1000
             options.new_command_timeout = settings.appium.timeout * 1000
+            if settings.appium.app_path:
+                options.app = settings.appium.app_path
+            if settings.appium.udid:
+                options.udid = settings.appium.udid
             
             # Optional: Set more capabilities
             options.set_capability("autoGrantPermissions", True)
@@ -93,9 +96,13 @@ class AppiumDriverManager:
             options.device_name = settings.appium.device_name
             options.platform_name = "iOS"
             options.bundle_id = settings.appium.app_package
-            options.automation_name = "XCUITest"
+            options.automation_name = settings.appium.automation_name
             options.implicit_wait_timeout = settings.appium.implicit_wait * 1000
             options.new_command_timeout = settings.appium.timeout * 1000
+            if settings.appium.app_path:
+                options.app = settings.appium.app_path
+            if settings.appium.udid:
+                options.udid = settings.appium.udid
             
             # Optional: Set more capabilities
             options.set_capability("autoAcceptAlerts", True)

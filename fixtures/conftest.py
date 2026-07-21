@@ -7,7 +7,7 @@ import pytest
 import asyncio
 from pathlib import Path
 from datetime import datetime
-from typing import Generator, Any
+from typing import Generator, Any, Dict
 from faker import Faker
 from core.playwright_manager import PlaywrightDriver
 from core.appium_manager import AppiumDriverManager
@@ -16,8 +16,10 @@ from core.screenshot_manager import ScreenshotManager
 from pages.login.page import LoginPage
 from pages.login.actions import LoginActions
 from pages.login.assertions import LoginAssertions
+from mobile_pages.login.actions import MobileLoginActions
+from mobile_pages.login.assertions import MobileLoginAssertions
+from mobile_pages.login.page import MobileLoginPage
 from api.clients.auth_client import AuthAPIClient
-from database.db_manager import db_manager, DatabaseManager
 from config.settings import settings
 
 
@@ -106,6 +108,16 @@ async def login_page_fixtures(browser_driver) -> Generator[tuple, None, None]:
     yield login_page, login_actions, login_assertions
 
 
+@pytest.fixture(scope="function")
+def mobile_login_page_fixtures(mobile_driver) -> Generator[tuple, None, None]:
+    """Provide mobile login page, actions, and assertions for Appium BDD tests."""
+    login_page = MobileLoginPage(mobile_driver.driver)
+    login_actions = MobileLoginActions(login_page)
+    login_assertions = MobileLoginAssertions(login_page)
+
+    yield login_page, login_actions, login_assertions
+
+
 # ============================================================================
 # API Fixtures
 # ============================================================================
@@ -141,13 +153,15 @@ def authenticated_api_client(api_client) -> Generator[AuthAPIClient, None, None]
 # ============================================================================
 
 @pytest.fixture(scope="session")
-def db() -> Generator[DatabaseManager, None, None]:
+def db() -> Generator[Any, None, None]:
     """
     Provide database manager (session scope).
     
     Yields:
         DatabaseManager instance
     """
+    from database.db_manager import DatabaseManager
+
     database = DatabaseManager()
     database.initialize()
     
