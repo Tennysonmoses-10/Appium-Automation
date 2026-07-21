@@ -3,6 +3,7 @@ Appium driver manager for mobile automation.
 Handles iOS and Android device management and lifecycle.
 """
 
+import base64
 from typing import Optional, Dict, Any
 from datetime import datetime
 from pathlib import Path
@@ -28,6 +29,8 @@ class AppiumDriverManager:
         self.device_id = device_id
         self.driver = None
         self._screenshot_dir = settings.reporting.screenshot_dir
+        self._video_dir = settings.reporting.video_dir
+        self._screen_recording = False
     
     @classmethod
     def get_instance(cls, device_id: str = "default") -> "AppiumDriverManager":
@@ -67,7 +70,7 @@ class AppiumDriverManager:
             
             # Optional: Set more capabilities
             options.set_capability("autoGrantPermissions", True)
-            options.set_capability("noReset", False)
+            options.set_capability("noReset", True)
             options.set_capability("allowInsecureLocalhost", True)
             
             self.driver = webdriver.Remote(
@@ -129,6 +132,10 @@ class AppiumDriverManager:
         Returns:
             WebDriver instance
         """
+        if self.driver:
+            logger.info(f"Reusing existing Appium driver for device: {self.device_id}")
+            return self.driver
+
         if settings.appium.platform == "Android":
             return self.initialize_android_driver()
         elif settings.appium.platform == "iOS":
@@ -145,6 +152,47 @@ class AppiumDriverManager:
         except Exception as e:
             logger.error(f"Error closing driver: {e}")
     
+    def start_screen_recording(self) -> bool:
+        """Start Appium screen recording when enabled for the current platform."""
+        if not self.driver or self._screen_recording:
+            return False
+
+        if not (settings.appium.record_video or settings.capture_video_each_scenario):
+            return False
+
+        try:
+            self.driver.start_recording_screen()
+            self._screen_recording = True
+            logger.info("Mobile screen recording started")
+            return True
+        except Exception as e:
+            logger.warning(f"Mobile screen recording is not available: {e}")
+            return False
+
+    def stop_screen_recording(self, name: str = None) -> Optional[Path]:
+        """Stop Appium screen recording and save the video file."""
+        if not self.driver or not self._screen_recording:
+            return None
+
+        try:
+            payload = self.driver.stop_recording_screen()
+            self._screen_recording = False
+            if not payload:
+                return None
+
+            self._video_dir.mkdir(parents=True, exist_ok=True)
+            if not name:
+                name = f"mobile_{datetime.now().strftime('%Y%m%d_%H%M%S')}.mp4"
+
+            video_path = self._video_dir / name
+            video_path.write_bytes(base64.b64decode(payload))
+            logger.info(f"Mobile screen recording saved: {video_path}")
+            return video_path
+        except Exception as e:
+            self._screen_recording = False
+            logger.warning(f"Failed to stop mobile screen recording: {e}")
+            return None
+
     def take_screenshot(self, name: str = None) -> Path:
         """
         Take screenshot of mobile screen.

@@ -3,12 +3,24 @@ Screenshot and evidence capture manager.
 Automatically captures screenshots on failures and manages evidence storage.
 """
 
+import os
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, Any
 from functools import wraps
 from core.logger import logger
 from config.settings import settings
+
+
+def evidence_href(report_dir: Path, evidence_path: Optional[Path]) -> str:
+    """Return a report-friendly relative path for evidence artifacts."""
+    if not evidence_path:
+        return ""
+
+    try:
+        return Path(os.path.relpath(evidence_path.resolve(), report_dir.resolve())).as_posix()
+    except ValueError:
+        return evidence_path.as_uri()
 
 
 class ScreenshotManager:
@@ -188,8 +200,10 @@ class VideoRecorder:
     
     def is_video_recording_enabled(self) -> bool:
         """Check if video recording is enabled."""
-        return settings.playwright.record_video or getattr(
-            settings, "mobile_video_recording", False
+        return (
+            settings.playwright.record_video
+            or settings.appium.record_video
+            or settings.capture_video_each_scenario
         )
     
     def cleanup_old_videos(self, days: int = 7) -> int:

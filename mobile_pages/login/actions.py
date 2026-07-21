@@ -10,6 +10,10 @@ class MobileLoginActions:
     def __init__(self, page: MobileLoginPage):
         self.page = page
 
+    def proceed_button(self) -> None:
+        self.page.proceed_button()
+        logger.info("Submitted mobile proceed action")
+
     def login(self, email: str, password: str) -> None:
         self.page.enter_email(email)
         self.page.enter_password(password)

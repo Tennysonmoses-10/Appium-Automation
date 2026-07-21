@@ -13,12 +13,12 @@ class MobileLoginLocators:
         ),
     )
     Language_Selection = LANGUAGE_SELECTION
-    EMAIL_INPUT = (
-        (AppiumBy.ACCESSIBILITY_ID, "email_input"),
-        (AppiumBy.ID, "com.meerolink.app:id/email"),
-        (AppiumBy.ANDROID_UIAUTOMATOR, 'new UiSelector().resourceIdMatches(".*:id/email")'),
-        (AppiumBy.IOS_PREDICATE, "name == 'email_input' OR name == 'email'"),
+
+    PROCEED_BUTTON = ((
+        AppiumBy.XPATH,'//android.view.View[@content-desc="Proceed"]',
+                      ),
     )
+    Proceed_BUTTON = PROCEED_BUTTON
     PASSWORD_INPUT = (
         (AppiumBy.ACCESSIBILITY_ID, "password_input"),
         (AppiumBy.ID, "com.partnerapp:id/password"),

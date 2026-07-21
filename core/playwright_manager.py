@@ -25,6 +25,7 @@ class PlaywrightDriverManager:
         self.page: Optional[Page] = None
         self._recording_dir = settings.reporting.video_dir
         self._trace_dir = settings.reporting.logs_dir / "traces"
+        self.last_video_path: Optional[Path] = None
     
     @classmethod
     def get_instance(cls) -> "PlaywrightDriverManager":
@@ -66,7 +67,7 @@ class PlaywrightDriverManager:
                 },
             }
             
-            if settings.playwright.record_video:
+            if settings.playwright.record_video or settings.capture_video_each_scenario:
                 self._recording_dir.mkdir(parents=True, exist_ok=True)
                 context_options["record_video_dir"] = str(self._recording_dir)
             
@@ -91,9 +92,16 @@ class PlaywrightDriverManager:
             logger.error(f"Failed to initialize browser: {e}")
             raise
     
-    async def close_browser(self) -> None:
+    async def close_browser(self) -> Optional[Path]:
         """Close browser and cleanup resources."""
+        self.last_video_path = None
         try:
+            if self.page and self.page.video:
+                try:
+                    self.last_video_path = Path(await self.page.video.path())
+                except Exception as e:
+                    logger.warning(f"Unable to resolve Playwright video path: {e}")
+
             if self.page:
                 await self.page.close()
                 logger.info("Page closed")
@@ -109,9 +117,15 @@ class PlaywrightDriverManager:
             if self.playwright:
                 await self.playwright.stop()
                 logger.info("Playwright stopped")
+
+            if self.last_video_path and self.last_video_path.exists():
+                logger.info(f"Playwright video saved: {self.last_video_path}")
+                return self.last_video_path
         
         except Exception as e:
             logger.error(f"Error closing browser: {e}")
+
+        return self.last_video_path
     
     async def navigate(self, url: str) -> None:
         """
@@ -208,10 +222,10 @@ class PlaywrightDriver:
         loop = self._get_loop()
         return loop.run_until_complete(self.manager.initialize_browser())
     
-    def close(self) -> None:
+    def close(self) -> Optional[Path]:
         """Close browser."""
         loop = self._get_loop()
-        loop.run_until_complete(self.manager.close_browser())
+        return loop.run_until_complete(self.manager.close_browser())
     
     def get_page(self) -> Page:
         """Get current page."""

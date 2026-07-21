@@ -43,6 +43,12 @@ class MobileLoginPage:
         self._find(MobileLoginLocators.LANGUAGE_SELECTION).click()
         logger.info("Clicked English language selection")
 
+
+    def proceed_button(self) -> None:
+        self._find(MobileLoginLocators.PROCEED_BUTTON).click()
+        logger.info("Clicked proceed button")
+
+
     def enter_email(self, email: str) -> None:
         field = self._find(MobileLoginLocators.EMAIL_INPUT)
         field.clear()

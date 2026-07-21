@@ -10,12 +10,12 @@ scenarios("../features/mobile_login.feature")
 @given("the mobile language screen is displayed")
 def mobile_login_screen_is_displayed(mobile_login_page_fixtures):
     login_page, _, _ = mobile_login_page_fixtures
-    login_page.enter_english()  # or login_page.enter_english() depending on your method name
+    login_page.enter_english()
 
-@when("the user logs in on mobile with valid credentials")
-def login_with_valid_mobile_credentials(mobile_login_page_fixtures, test_user_data):
+@given("Proceed Button was pressed")
+def proceed_button_was_pressed(mobile_login_page_fixtures):
     _, actions, _ = mobile_login_page_fixtures
-    actions.login(test_user_data["email"], test_user_data["password"])
+    actions.proceed_button()
 
 
 @when(parsers.parse('the user logs in on mobile with email "{email}" and password "{password}"'))

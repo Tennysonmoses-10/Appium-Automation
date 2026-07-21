@@ -36,7 +36,7 @@ def event_loop():
 
 
 @pytest.fixture(scope="function")
-def browser_driver() -> Generator[PlaywrightDriver, None, None]:
+def browser_driver(request) -> Generator[PlaywrightDriver, None, None]:
     """
     Provide Playwright driver.
     
@@ -49,7 +49,18 @@ def browser_driver() -> Generator[PlaywrightDriver, None, None]:
     
     yield driver
     
-    driver.close()
+    video_path = driver.close()
+    if video_path:
+        logger.info(f"Playwright video saved: {video_path}")
+        rep_call = getattr(request.node, "rep_call", None)
+        if rep_call and rep_call.failed and settings.reporting.enable_allure:
+            import allure
+
+            allure.attach.file(
+                str(video_path),
+                name=f"{request.node.name} video",
+                attachment_type=allure.attachment_type.MP4,
+            )
     logger.info("Browser driver closed")
 
 
@@ -70,21 +81,36 @@ def screenshot_manager() -> Generator[ScreenshotManager, None, None]:
 # ============================================================================
 
 @pytest.fixture(scope="function")
-def mobile_driver() -> Generator[AppiumDriverManager, None, None]:
+def mobile_driver(request) -> Generator[AppiumDriverManager, None, None]:
     """
-    Provide Appium mobile driver.
+    Provide Appium mobile driver and keep it open after the test.
     
     Yields:
         AppiumDriverManager instance
     """
     manager = AppiumDriverManager.get_instance()
     manager.initialize_driver()
+    manager.start_screen_recording()
     logger.info("Mobile driver initialized")
     
     yield manager
-    
-    manager.close_driver()
-    logger.info("Mobile driver closed")
+
+    video_path = manager.stop_screen_recording(
+        name=f"mobile_{datetime.now().strftime('%Y%m%d_%H%M%S')}.mp4"
+    )
+    if video_path:
+        logger.info(f"Mobile video saved: {video_path}")
+        rep_call = getattr(request.node, "rep_call", None)
+        if rep_call and rep_call.failed and settings.reporting.enable_allure:
+            import allure
+
+            allure.attach.file(
+                str(video_path),
+                name=f"{request.node.name} video",
+                attachment_type=allure.attachment_type.MP4,
+            )
+
+    logger.info("Mobile driver kept open")
 
 
 # ============================================================================
@@ -302,22 +328,56 @@ def pytest_configure(config):
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item, call):
-    """Capture screenshots on test failure."""
+    """Capture screenshots on test failure and store report objects on the test item."""
     outcome = yield
     rep = outcome.get_result()
-    
-    # Capture screenshot on failure
-    if rep.failed and call.when == "call":
-        if "browser_driver" in item.fixturenames:
-            try:
-                browser_driver = item.funcargs.get("browser_driver")
-                if browser_driver:
-                    manager = ScreenshotManager()
-                    screenshot_path = manager.capture_screenshot(
-                        browser_driver.get_page(),
-                        name=f"failure_{item.name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png",
-                        test_name=item.name
+    setattr(item, f"rep_{call.when}", rep)
+
+    if rep.when != "call" or not rep.failed:
+        return
+
+    if "browser_driver" in item.fixturenames:
+        try:
+            browser_driver = item.funcargs.get("browser_driver")
+            if browser_driver:
+                manager = ScreenshotManager()
+                screenshot_path = manager.capture_screenshot(
+                    browser_driver.get_page(),
+                    name=f"failure_{item.name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png",
+                    test_name=item.name,
+                )
+                logger.error(f"Test failed. Screenshot: {screenshot_path}")
+
+                if settings.reporting.enable_allure and screenshot_path:
+                    import allure
+
+                    allure.attach.file(
+                        str(screenshot_path),
+                        name=f"{item.name} screenshot",
+                        attachment_type=allure.attachment_type.PNG,
                     )
-                    logger.error(f"Test failed. Screenshot: {screenshot_path}")
-            except Exception as e:
-                logger.warning(f"Failed to capture failure screenshot: {e}")
+        except Exception as e:
+            logger.warning(f"Failed to capture browser failure evidence: {e}")
+
+    if "mobile_driver" in item.fixturenames:
+        try:
+            mobile_driver = item.funcargs.get("mobile_driver")
+            if mobile_driver and mobile_driver.driver:
+                manager = ScreenshotManager()
+                screenshot_path = manager.capture_screenshot(
+                    mobile_driver.driver,
+                    name=f"failure_{item.name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png",
+                    test_name=item.name,
+                )
+                logger.error(f"Mobile test failed. Screenshot: {screenshot_path}")
+
+                if settings.reporting.enable_allure and screenshot_path:
+                    import allure
+
+                    allure.attach.file(
+                        str(screenshot_path),
+                        name=f"{item.name} screenshot",
+                        attachment_type=allure.attachment_type.PNG,
+                    )
+        except Exception as e:
+            logger.warning(f"Failed to capture mobile failure evidence: {e}")

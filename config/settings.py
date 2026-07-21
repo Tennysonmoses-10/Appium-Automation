@@ -54,6 +54,7 @@ class AppiumConfig(BaseSettings):
     app_path: str = Field(default="")  # Path to APK/IPA file
     automation_name: str = Field(default="UiAutomator2")  # Android: UiAutomator2, iOS: XCUITest
     udid: str = Field(default="")  # Device UDID (optional)
+    record_video: bool = Field(default=False)
 
 
 class PlaywrightConfig(BaseSettings):
@@ -156,6 +157,8 @@ class AppSettings(BaseSettings):
     # Screenshot configuration
     capture_screenshot_on_failure: bool = Field(default=True)
     capture_video_on_failure: bool = Field(default=True)
+    capture_screenshot_each_step: bool = Field(default=True)
+    capture_video_each_scenario: bool = Field(default=True)
     
     # Test data
     test_data_dir: Path = Field(default=Path("test_data"))
