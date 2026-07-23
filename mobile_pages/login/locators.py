@@ -14,40 +14,82 @@ class MobileLoginLocators:
     )
     Language_Selection = LANGUAGE_SELECTION
 
+    HINDI=((
+        AppiumBy.XPATH,
+        '//android.view.View[@content-desc="हिंदी''आपके लिए, आपकी अपनी भाषा में"]'
+           ),
+    )
+    hindi=HINDI
+
+    MARATHI=((
+        AppiumBy.XPATH,
+        '//android.view.View[@content-desc="मराठी तुमच्यासाठी, तुमच्या स्वतःच्या भाषेत"]'
+    ),
+    )
+    marathi=MARATHI
+
     PROCEED_BUTTON = ((
         AppiumBy.XPATH,'//android.view.View[@content-desc="Proceed"]',
                       ),
     )
     Proceed_BUTTON = PROCEED_BUTTON
-    PASSWORD_INPUT = (
-        (AppiumBy.ACCESSIBILITY_ID, "password_input"),
-        (AppiumBy.ID, "com.partnerapp:id/password"),
-        (AppiumBy.ANDROID_UIAUTOMATOR, 'new UiSelector().resourceIdMatches(".*:id/password")'),
-        (AppiumBy.IOS_PREDICATE, "name == 'password_input' OR name == 'password'"),
+
+    GET_STARTED=((
+        AppiumBy.XPATH,
+    '//android.view.View[@content-desc="Get Started"]'
+    ),
     )
-    LOGIN_BUTTON = (
-        (AppiumBy.ACCESSIBILITY_ID, "login_button"),
-        (AppiumBy.ID, "com.partnerapp:id/login_button"),
-        (AppiumBy.ANDROID_UIAUTOMATOR, 'new UiSelector().textMatches("(?i)login|sign in")'),
-        (AppiumBy.IOS_PREDICATE, "name == 'login_button' OR label IN {'Login', 'Sign In'}"),
+    get_started=GET_STARTED
+
+    ENTER_MOBILENUMBER=((
+        AppiumBy.XPATH,
+    '//android.widget.EditText'
+    ),
     )
-    FORGOT_PASSWORD_LINK = (
-        (AppiumBy.ACCESSIBILITY_ID, "forgot_password"),
-        (AppiumBy.ID, "com.partnerapp:id/forgot_password"),
-        (AppiumBy.ANDROID_UIAUTOMATOR, 'new UiSelector().textContains("Forgot")'),
+    enter_mobilenumbers = ENTER_MOBILENUMBER
+
+    PROCEED_LOGIN = ((
+                              AppiumBy.XPATH,
+                              '//android.view.View[@content-desc="Proceed"]'
+                          ),
     )
-    SIGN_UP_LINK = (
-        (AppiumBy.ACCESSIBILITY_ID, "sign_up"),
-        (AppiumBy.ID, "com.partnerapp:id/sign_up"),
-        (AppiumBy.ANDROID_UIAUTOMATOR, 'new UiSelector().textMatches("(?i)sign up|create account")'),
+    Proceed_Login = PROCEED_LOGIN
+
+
+    ENTER_OTP = (
+        (
+            AppiumBy.XPATH,
+"//android.widget.EditText[@focused='true']",
+         #   "//android.widget.EditText[@max-text-length='4' and ancestor::android.view.View[contains(@content-desc,'Enter your verification code')]",
+        ),
     )
+    enter_otp = ENTER_OTP
+
+    CONFIRM=((
+        AppiumBy.XPATH,
+        '//android.view.View[@content-desc="Confirm"]'
+    ),
+    )
+    CONFIRM_BUTTON = CONFIRM
+
+    ADVISORY_BUTTON=((
+        AppiumBy.XPATH,
+        '//android.widget.ImageView[@content-desc="Advisory"]'
+    ),
+    )
+    advisory= ADVISORY_BUTTON
+
+    ASK_EXPERT_BUTTON = (
+        (
+            AppiumBy.XPATH,
+            '//android.view.View[@content-desc="Ask Expert"]',
+        ),
+    )
+    ask_expert = ASK_EXPERT_BUTTON
+
+
     ERROR_MESSAGE = (
         (AppiumBy.ACCESSIBILITY_ID, "error_message"),
         (AppiumBy.ID, "com.partnerapp:id/error_message"),
         (AppiumBy.ANDROID_UIAUTOMATOR, 'new UiSelector().resourceIdMatches(".*:id/.*error.*")'),
-    )
-    DASHBOARD_TITLE = (
-        (AppiumBy.ACCESSIBILITY_ID, "dashboard_title"),
-        (AppiumBy.ID, "com.partnerapp:id/dashboard_title"),
-        (AppiumBy.ANDROID_UIAUTOMATOR, 'new UiSelector().textContains("Dashboard")'),
     )

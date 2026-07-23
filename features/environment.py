@@ -12,6 +12,8 @@ from config.settings import settings
 from mobile_pages.login.actions import MobileLoginActions
 from mobile_pages.login.assertions import MobileLoginAssertions
 from mobile_pages.login.page import MobileLoginPage
+from mobile_pages.login.full_advisory import FullAdvisoryActions, FullAdvisoryPage
+from mobile_pages.login.short_advisory import ShortAdvisoryActions, ShortAdvisoryPage
 
 try:
     import allure
@@ -70,6 +72,12 @@ def before_scenario(context, scenario):
     context.mobile_login_page = MobileLoginPage(context.mobile_driver_manager.driver)
     context.mobile_login_actions = MobileLoginActions(context.mobile_login_page)
     context.mobile_login_assertions = MobileLoginAssertions(context.mobile_login_page)
+    context.short_advisory_actions = ShortAdvisoryActions(
+        ShortAdvisoryPage(context.mobile_driver_manager.driver)
+    )
+    context.full_advisory_actions = FullAdvisoryActions(
+        FullAdvisoryPage(context.mobile_driver_manager.driver)
+    )
 
     if context.mobile_driver_manager.start_screen_recording():
         scenario.video_recording = True
