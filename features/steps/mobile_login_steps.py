@@ -55,6 +55,71 @@ def short_advisory_button_was_clicked(context):
     context.short_advisory_actions.click_short_advisory()
 
 
+@when("the location permission is allowed")
+def location_permission_is_allowed(context):
+    context.short_advisory_actions.allow_location_permission()
+
+
+@when("Clicked Farmblock")
+def farmblock_button_was_clicked(context):
+    context.short_advisory_actions.click_farmblock()
+
+
+@when('Selected Farmblock "{farmblock}"')
+def farmblock_was_selected(context, farmblock):
+    context.short_advisory_actions.select_farmblock(farmblock)
+
+
+@when("Clicked Proceed after Farmblock selection")
+def proceed_after_farmblock_selection(context):
+    context.short_advisory_actions.click_proceed_after_farmblock()
+
+
+@when("Clicked Crop dropdown")
+def crop_dropdown_was_clicked(context):
+    context.short_advisory_actions.click_crop_dropdown()
+
+
+@when('Selected Crop "{crop}"')
+def crop_was_selected(context, crop):
+    context.short_advisory_actions.select_crop(crop)
+
+
+@when("Clicked Crop Variety dropdown")
+def crop_variety_dropdown_was_clicked(context):
+    context.short_advisory_actions.click_crop_variety_dropdown()
+
+
+@when('Selected Crop Variety "{crop_variety}"')
+def crop_variety_was_selected(context, crop_variety):
+    context.short_advisory_actions.select_crop_variety(crop_variety)
+
+
+@when("Clicked Text toggle")
+def text_toggle_was_clicked(context):
+    context.short_advisory_actions.click_text_toggle()
+
+
+@when('Entered observations "{observations}"')
+def observations_were_entered(context, observations):
+    context.short_advisory_actions.enter_observations(observations)
+
+
+@when('Camera permission is set to "{decision}"')
+def camera_permission_is_set(context, decision):
+    context.short_advisory_actions.set_camera_permission(decision)
+
+
+@when("Added {count} image from Camera")
+def images_were_added(context, count):
+    context.short_advisory_actions.add_images(int(count))
+
+
+@when("Saved As Draft")
+def advisory_was_saved_as_draft(context):
+    context.short_advisory_actions.save_as_draft()
+
+
 @when("Clicked Full Advisory")
 def full_advisory_button_was_clicked(context):
     context.full_advisory_actions.click_full_advisory()

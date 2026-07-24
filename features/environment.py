@@ -2,6 +2,9 @@
 
 import html
 import json
+import os
+import shutil
+import subprocess
 from datetime import datetime
 from pathlib import Path
 
@@ -203,11 +206,67 @@ def after_all(context):
     logger.info(f"Behave JSON report created: {json_path}")
     logger.info(f"Behave HTML report created: {html_path}")
     logger.info(f"Latest Behave HTML report: {latest_html_path}")
+    if not os.getenv("CI"):
+        _generate_and_open_allure_report()
     if ALLURE_AVAILABLE:
         logger.info(
             "Allure results are available. Generate the report with: "
             f"allure serve {settings.reporting.allure_dir}"
         )
+
+
+def _generate_and_open_allure_report() -> None:
+    """Generate a persistent Allure report and open it in the default browser."""
+    allure_cli = _find_allure_command()
+    report_dir = settings.reporting.allure_dir.parent / "allure-report"
+
+    if not allure_cli:
+        logger.warning(
+            "Allure CLI and npx were not found. Install the Allure command-line tool to "
+            "generate and open the permanent Allure report. No fallback HTML report will be opened."
+        )
+        return
+
+    try:
+        report_dir.mkdir(parents=True, exist_ok=True)
+        subprocess.run(
+            [
+                *allure_cli,
+                "generate",
+                str(settings.reporting.allure_dir),
+                "-o",
+                str(report_dir),
+                "--clean",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        logger.info(f"Permanent Allure report generated: {report_dir}")
+
+        # `allure open` serves the report correctly and opens the default browser.
+        subprocess.Popen(
+            [*allure_cli, "open", str(report_dir)],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            creationflags=getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0),
+        )
+        logger.info("Permanent Allure report opened in the default browser")
+    except (OSError, subprocess.CalledProcessError) as exc:
+        logger.warning(f"Could not generate or open the Allure report: {exc}")
+
+
+def _find_allure_command() -> list[str] | None:
+    """Find the standalone Allure CLI or an npx-based Allure CLI command."""
+    allure_cli = shutil.which("allure")
+    if allure_cli:
+        return [allure_cli]
+
+    npx_cli = shutil.which("npx.cmd") or shutil.which("npx")
+    if npx_cli:
+        return [npx_cli, "--yes", "allure-commandline"]
+
+    return None
 
 
 def _safe_filename(value: str) -> str:

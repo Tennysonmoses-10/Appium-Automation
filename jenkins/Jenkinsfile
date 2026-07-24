@@ -1,0 +1,131 @@
+pipeline {
+    agent any
+
+    parameters {
+        string(name: 'TEST_TAGS', defaultValue: 'smoke', description: 'Behave tag expression to run')
+        choice(name: 'DEVICE_TARGET', choices: ['emulator', 'real'], description: 'Android target type')
+        string(name: 'APK_PATH', defaultValue: 'C:/Users/NidhiChaure/Downloads/MeeroLink.apk', description: 'APK path on the Jenkins agent')
+        string(name: 'AVD_NAME', defaultValue: 'Medium_Phone', description: 'Android Virtual Device for emulator builds')
+        string(name: 'DEVICE_UDID', defaultValue: 'emulator-5556', description: 'Emulator ID or real-device adb serial')
+        string(name: 'APP_PACKAGE', defaultValue: 'com.meerolink.app', description: 'Android application package')
+        string(name: 'APP_ACTIVITY', defaultValue: 'com.meerolink.app.MainActivity', description: 'Android launch activity')
+    }
+
+    options {
+        timestamps()
+        skipDefaultCheckout(true)
+        disableConcurrentBuilds()
+        timeout(time: 30, unit: 'MINUTES')
+        buildDiscarder(logRotator(numToKeepStr: '20', artifactNumToKeepStr: '10'))
+    }
+
+    environment {
+        PYTHON = 'C:/Program Files/Python313/python.exe'
+        ANDROID_HOME = 'C:/Users/NidhiChaure/AppData/Local/Android/Sdk'
+        ANDROID_SDK_ROOT = "${ANDROID_HOME}"
+        ANDROID_AVD_HOME = 'C:/Users/NidhiChaure/.android/avd'
+        ANDROID_USER_HOME = 'C:/Users/NidhiChaure/.android'
+        ANDROID_EMULATOR_HOME = 'C:/Users/NidhiChaure/.android'
+        APPIUM_SERVER_URL = 'http://127.0.0.1:4723'
+        APPIUM_EXPLICIT_WAIT = '240'
+        CI = 'true'
+        PATH = "C:/Program Files/Python313;C:/Program Files/Python313/Scripts;${ANDROID_HOME}/platform-tools;${ANDROID_HOME}/emulator;C:/Users/NidhiChaure/AppData/Roaming/npm;${env.PATH}"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Prepare environment') {
+            steps {
+                bat 'if not exist "%PYTHON%" (echo Python not found at %PYTHON% & exit /b 2)'
+                bat '"%PYTHON%" -m venv .jenkins-venv'
+                bat '".jenkins-venv\\Scripts\\python.exe" -m pip install --upgrade pip setuptools wheel'
+                bat '".jenkins-venv\\Scripts\\python.exe" -m pip install -e .'
+            }
+        }
+
+        stage('Verify tools') {
+            steps {
+                bat 'java -version'
+                bat 'node --version'
+                bat 'adb version'
+                bat 'appium --version'
+                bat 'adb devices -l'
+            }
+        }
+
+        stage('Prepare Android target') {
+            environment {
+                APPIUM_APP_PATH = "${params.APK_PATH}"
+                APPIUM_APP_PACKAGE = "${params.APP_PACKAGE}"
+                APPIUM_APP_ACTIVITY = "${params.APP_ACTIVITY}"
+                APPIUM_UDID = "${params.DEVICE_UDID}"
+                APPIUM_DEVICE_NAME = "${params.DEVICE_UDID}"
+            }
+            steps {
+                bat 'if not exist "%APK_PATH%" (echo APK not found: %APK_PATH% & exit /b 2)'
+                script {
+                    if (params.DEVICE_TARGET == 'emulator') {
+                        bat 'adb -s "%DEVICE_UDID%" emu kill >nul 2>&1 || exit /b 0'
+                        bat 'powershell -NoProfile -Command "Start-Sleep -Seconds 5"'
+                        bat 'start "Android Emulator" /B "%ANDROID_HOME%\\emulator\\emulator.exe" -avd "%AVD_NAME%" -port 5556 -no-window -gpu swiftshader_indirect -no-audio -no-snapshot-save -no-boot-anim'
+                        bat 'adb -s "%DEVICE_UDID%" wait-for-device'
+                        bat 'powershell -NoProfile -Command "$deadline=(Get-Date).AddMinutes(5); do { $boot=(adb -s $env:DEVICE_UDID shell getprop sys.boot_completed); if ($boot.Trim() -eq ''1'') { exit 0 }; Start-Sleep 3 } while ((Get-Date) -lt $deadline); Write-Error ''Android boot timed out''; exit 1"'
+                    } else {
+                        bat 'adb -s "%DEVICE_UDID%" get-state'
+                    }
+                }
+                bat 'adb -s "%DEVICE_UDID%" install -r "%APK_PATH%"'
+                bat 'adb -s "%DEVICE_UDID%" shell pm clear "%APP_PACKAGE%"'
+                bat 'adb -s "%DEVICE_UDID%" shell am start -W -n "%APP_PACKAGE%/%APP_ACTIVITY%"'
+            }
+        }
+
+        stage('Start Appium') {
+            steps {
+                bat 'if not exist logs mkdir logs'
+                bat 'start "Appium" /B appium --base-path / > logs\\appium.log 2>&1'
+                bat 'powershell -NoProfile -Command "$deadline=(Get-Date).AddSeconds(45); do { try { $r=Invoke-WebRequest -UseBasicParsing http://127.0.0.1:4723/status; if ($r.StatusCode -eq 200) { exit 0 } } catch {}; Start-Sleep 2 } while ((Get-Date) -lt $deadline); Write-Error ''Appium did not become ready''; exit 1"'
+            }
+        }
+
+        stage('Run mobile tests') {
+            environment {
+                APPIUM_APP_PATH = "${params.APK_PATH}"
+                APPIUM_APP_PACKAGE = "${params.APP_PACKAGE}"
+                APPIUM_APP_ACTIVITY = "${params.APP_ACTIVITY}"
+                APPIUM_UDID = "${params.DEVICE_UDID}"
+                APPIUM_DEVICE_NAME = "${params.DEVICE_UDID}"
+            }
+            steps {
+                bat '".jenkins-venv\\Scripts\\behave.exe" --tags="%TEST_TAGS%" features\\mobile_login.feature'
+            }
+        }
+    }
+
+    post {
+        always {
+            junit testResults: 'reports/junit/**/*.xml', allowEmptyResults: true
+            archiveArtifacts(
+                artifacts: 'reports/**/*,screenshots/**/*,videos/**/*,logs/**/*',
+                allowEmptyArchive: true
+            )
+            allure(
+                includeProperties: false,
+                results: [[path: 'reports/allure']]
+            )
+        }
+        cleanup {
+            bat '''for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":4723 .*LISTENING"') do taskkill /F /PID %%a >nul 2>&1 || exit /b 0'''
+            script {
+                if (params.DEVICE_TARGET == 'emulator') {
+                    bat 'adb -s "%DEVICE_UDID%" emu kill >nul 2>&1 || exit /b 0'
+                }
+            }
+        }
+    }
+}

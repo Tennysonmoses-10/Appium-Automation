@@ -52,6 +52,15 @@ class MobileLoginPage:
         except WebDriverException:
             logger.info("Mobile keyboard was not open or could not be dismissed")
 
+        # Some Android keyboards ignore hide_keyboard(). Verify the state and
+        # send Back only when the keyboard is still actually displayed.
+        try:
+            if self.driver.is_keyboard_shown():
+                self.driver.press_keycode(4)
+                logger.info("Dismissed remaining Android keyboard with Back")
+        except (WebDriverException, AttributeError):
+            logger.info("Could not verify or dismiss the remaining Android keyboard")
+
     def _set_field_text(self, field, value: str) -> None:
         """Set text on a mobile input, with Flutter-friendly fallbacks."""
         field.click()
