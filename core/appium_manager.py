@@ -72,6 +72,11 @@ class AppiumDriverManager:
             options.set_capability("autoGrantPermissions", True)
             options.set_capability("noReset", True)
             options.set_capability("allowInsecureLocalhost", True)
+            # Fresh CI emulators can need longer than Appium's 30-second default
+            # while UiAutomator2 installs and starts its instrumentation process.
+            options.set_capability("uiautomator2ServerInstallTimeout", 90000)
+            options.set_capability("uiautomator2ServerLaunchTimeout", 90000)
+            options.set_capability("adbExecTimeout", 90000)
             
             self.driver = webdriver.Remote(
                 settings.appium.server_url,
