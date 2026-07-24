@@ -3,7 +3,11 @@
 import time
 from typing import Iterable, Optional, Tuple
 
-from selenium.common.exceptions import NoSuchElementException, WebDriverException
+from selenium.common.exceptions import (
+    NoSuchElementException,
+    StaleElementReferenceException,
+    WebDriverException,
+)
 from selenium.webdriver.common.keys import Keys
 
 from config.settings import settings
@@ -120,7 +124,12 @@ class MobileLoginPage:
         if field is None:
             raise NoSuchElementException(f"No OTP input matched locators: {MobileLoginLocators.ENTER_OTP}")
 
-        field.click()
+        try:
+            field.click()
+        except StaleElementReferenceException:
+            logger.info("OTP field refreshed before click; locating it again")
+            field = self._find(MobileLoginLocators.ENTER_OTP)
+            field.click()
 
         # Clear attempts
         try:
